@@ -9,9 +9,9 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final supportsFirebase = !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
+    final supportsFirebase = kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
   if (supportsFirebase) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -31,7 +31,7 @@ class ContactApp extends StatelessWidget {
       initialRoute: AppRiutes.home,
       routes: {
         AppRiutes.home: (context) => const HomeScreen(),
-        AppRiutes.addtask: (context) => const AddTaskScreen(),
+        AppRiutes.addtask: (context) => const AddTask(),
       },
     );
   }

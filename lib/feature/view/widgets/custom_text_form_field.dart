@@ -1,46 +1,46 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class CustomTextFormField extends StatelessWidget {
   const CustomTextFormField({
     super.key,
     required this.label,
+    required this.hint,
     this.controller,
     this.validator,
-    this.hint,
-    this.maxLines = 1,
+    this.keyboardType,
   });
 
   final String label;
+  final String hint;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
-  final String? hint;
-  final int maxLines;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           validator: validator,
-          maxLines: maxLines,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: CupertinoColors.inactiveGray),
+            hintStyle: const TextStyle(color: Colors.grey),
             fillColor: Colors.white,
             filled: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: maxLines > 1 ? 16 : 14,
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: Color(0xFF4A56C5)),

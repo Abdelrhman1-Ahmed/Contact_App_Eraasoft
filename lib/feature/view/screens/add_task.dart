@@ -1,21 +1,36 @@
+import 'package:contact_app/feature/view/widgets/custom_material_button.dart';
+import 'package:contact_app/feature/view/widgets/custom_text_form_field.dart';
+import 'package:contact_app/feature/view/widgets/app_dialog.dart';
+import 'package:contact_app/feature/view/data/firebase/firebase_service.dart';
+import 'package:contact_app/feature/view/data/models/contact_user.dart';
 import 'package:flutter/material.dart';
 
-class AddTaskScreen extends StatefulWidget {
-  const AddTaskScreen({super.key});
+class AddTask extends StatefulWidget {
+  const AddTask({super.key, this.contactUser});
+
+  final ContactUser? contactUser;
 
   @override
-  State<AddTaskScreen> createState() => _AddTaskScreenState();
+  State<AddTask> createState() => _AddTaskState();
 }
 
-class _AddTaskScreenState extends State<AddTaskScreen> {
-  // تعريف الـ Controllers للحقول
-  final TextEditingController titleTask = TextEditingController();
-  final TextEditingController desTask = TextEditingController();
+class _AddTaskState extends State<AddTask> {
+  final formKey = GlobalKey<FormState>();
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController();
+  final firebaseService = FirebaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    nameController.text = widget.contactUser?.name ?? "";
+    phoneController.text = widget.contactUser?.phone ?? "";
+  }
 
   @override
   void dispose() {
-    titleTask.dispose();
-    desTask.dispose();
+    nameController.dispose();
+    phoneController.dispose();
     super.dispose();
   }
 
@@ -24,124 +39,79 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text("Add  New Contact",
-        style: TextStyle(
-          fontSize: 25,
-          color: Colors.white,
-        ),),
+        title: Text(
+          widget.contactUser == null ? "Add New Contact" : "Edit Contact",
+          style: const TextStyle(fontSize: 30, color: Colors.white),
+        ),
       ),
       backgroundColor: Colors.black,
-      body:
-      
-      Padding(
-        
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          
-          
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // حقل الاسم أو عنوان المهمة
-            CustomTextFormField(
-              
-              label: "Name",
-              hint: "Enter Name",
-              controller: titleTask,
-            ),
-            const SizedBox(height: 16),
-            
-            // حقل رقم الهاتف أو التفاصيل
-            CustomTextFormField(
-              label: "Phone Number",
-              hint: "Enter Phone Number",
-              controller: desTask,
-            ),
-            const SizedBox(height: 16),
-            
-            // عنوان جانب القائمة المنسدلة
-            const SizedBox(height: 24),
-            CustomMaterialButton(
-              text: "Save",
-              onPressed: () async {
-                // add save logic here
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+      body: Form(
+        key: formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CustomTextFormField(
+                label: "Name",
+                hint: "Enter Name",
+                controller: nameController,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Enter a name";
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              CustomTextFormField(
+                label: "Phone Number",
+                hint: "Enter Phone Number",
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return "Enter a phone number";
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              CustomMaterialButton(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) {
+                    return;
+                  }
 
-// نموذج مبسط لـ CustomTextFormField إذا لم يكن جاهزاً لديك في مشروعك
-class CustomTextFormField extends StatelessWidget {
-  final String label;
-  final String hint;
-  final TextEditingController controller;
+                  var name = nameController.text;
+                  var phone = phoneController.text;
+                  AppDialog.showLoading(context);
 
-  const CustomTextFormField({
-    super.key,
-    required this.label,
-    required this.hint,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white),
-      cursorColor: Colors.white,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: const TextStyle(color: Colors.white70),
-        hintStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.08),
-        border: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white38),
-        ),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white38),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue),
-        ),
-      ),
-    );
-  }
-}
-
-class CustomMaterialButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-  final Color color;
-
-  const CustomMaterialButton({
-    super.key,
-    required this.text,
-    required this.onPressed,
-    this.color = Colors.blue,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: MaterialButton(
-        onPressed: onPressed,
-        color: color,
-        textColor: Colors.white,
-        height: 50,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+                  try {
+                    var contactUser = ContactUser(name: name, phone: phone);
+                    if (widget.contactUser == null) {
+                      await firebaseService.addUser(contactUser);
+                    } else {
+                      await firebaseService.update(
+                        ContactUser(
+                          id: widget.contactUser!.id,
+                          name: name,
+                          phone: phone,
+                        ),
+                      );
+                    }
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                    AppDialog.showError(context, e.toString());
+                  }
+                },
+                text: "Save",
+              ),
+            ],
           ),
         ),
       ),

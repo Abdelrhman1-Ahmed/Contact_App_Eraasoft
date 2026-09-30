@@ -1,35 +1,67 @@
 import 'package:contact_app/core/routes/app_riutes.dart';
+import 'package:contact_app/feature/view/data/firebase/firebase_service.dart';
+import 'package:contact_app/feature/view/data/models/contact_user.dart';
+import 'package:contact_app/feature/view/screens/add_task.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  var users = <ContactUser>[];
+  final firebaseService = FirebaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    getAllContact();
+  }
+
+  Future<void> addContact() async {
+    await Navigator.of(context).pushNamed(AppRiutes.addtask);
+    getAllContact();
+  }
+
+  Future<void> editContact(ContactUser user) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => AddTask(contactUser: user)),
+    );
+    getAllContact();
+  }
+
+  Future<void> deleteContact(ContactUser user) async {
+    if (user.id == null) return;
+    await firebaseService.delete(user.id!);
+    getAllContact();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        
-        title:Text("AbdelRhman Contacts",style:
-        TextStyle(
-          fontSize: 30,
-        
-          color: Colors.white
-        ),) ,
+        title: Text(
+          "AbdelRhman Contacts",
+          style: TextStyle(fontSize: 30, color: Colors.white),
+        ),
         backgroundColor: Colors.black,
       ),
       body: ListView.builder(
         itemBuilder: (context, index) => CardPerson(
-          subtitle: "01146529415$index",
-          title: "Mohamed$index",
+          user: users[index],
+          onEdit: () => editContact(users[index]),
+          onDelete: () => deleteContact(users[index]),
         ),
-        itemCount: 20,
+        itemCount: users.length,
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
-        onPressed: () {
-          Navigator.of(context).pushNamed(AppRiutes.addtask);
-        },
+        onPressed: addContact,
         child: const Text(
           "Add",
           style: TextStyle(
@@ -39,22 +71,35 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-        
-        
-      
     );
+  }
+
+  Future<void> getAllContact() async {
+    final supportsFirebase = kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    if (!supportsFirebase) return;
+
+    try {
+      users = await firebaseService.getAllData();
+      if (mounted) setState(() {});
+    } catch (_) {
+      if (mounted) setState(() => users = []);
+    }
   }
 }
 
 class CardPerson extends StatelessWidget {
   const CardPerson({
     super.key,
-    required this.subtitle,
-    required this.title,
+    required this.user,
+    required this.onEdit,
+    required this.onDelete,
   });
 
-  final String title;
-  final String subtitle;
+  final ContactUser user;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -62,22 +107,26 @@ class CardPerson extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       child: ListTile(
         title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.black,
-          ),
+          user.name ?? "",
+          style: const TextStyle(color: Colors.black),
         ),
+        onTap: onEdit,
         subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            color: Colors.cyan,
-            fontSize: 14,
-          ),
+          user.phone ?? "",
+          style: const TextStyle(color: Colors.cyan, fontSize: 14),
         ),
-        trailing: const Icon(
-          Icons.person,
-          size: 30,
-          color: Colors.blue,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit, color: Colors.blue),
+            ),
+            IconButton(
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete, color: Colors.red),
+            ),
+          ],
         ),
       ),
     );
